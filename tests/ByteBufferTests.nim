@@ -9,23 +9,26 @@ const
   t5 = high(int32)
   t6 = low(int32)
   t7 = " !\"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+  t8 = [int8(10), 20, 30]
 
 let buff = newLittleEndianByteBuffer()
 #byte
-encode[int8](buff, t0)
-encode[int8](buff, t1)
-encode[int8](buff, t2)
-buff.encode(cast[int8](t3))
+encode1(buff, t0)
+encode1(buff, t1)
+encode1(buff, t2)
+encode1(buff, t3)
 #short
-encode[int16](buff, t0)
-encode[int16](buff, t3)
-encode[int16](buff, t4)
+encode2(buff, t0)
+encode2(buff, t3)
+encode2(buff, t4)
 #int
-encode[int32](buff, t0)
-encode(buff, t5) # int cast to int32
-encode[int32](buff, t6)
+encode4(buff, t0)
+encode4(buff, t5)
+encode4(buff, t6)
 #string
-encode(buff, t7)
+encodeStr(buff, t7)
+#array
+#encode1(buff, t4)
 
 assert buff.decode1() == t0
 assert buff.decode1() == t1

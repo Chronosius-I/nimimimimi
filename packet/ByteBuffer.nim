@@ -1,7 +1,7 @@
 import ../util/BitTools
 
 type
-  LittleEndianByteBuffer = ref object
+  LittleEndianByteBuffer* = ref object
     data*: seq[int8]
     pos: int
 
@@ -10,25 +10,25 @@ proc newLittleEndianByteBuffer*(data: seq[int8] = @[]): LittleEndianByteBuffer =
   result.data = data
   result.pos = 0
 
-proc encode*[T](buff: LittleEndianByteBuffer, value: T): LittleEndianByteBuffer {.discardable.} =
-  if T is int8:
-    let val = cast[int8](value)
-    buff.data.add(val)
-  elif T is int16:
-    let val = cast[int16](value)
-    buff.data.add(val.toByteArray())
-  elif T is int32 or T is int:
-    let val = cast[int32](value)
-    buff.data.add(val.toByteArray())
-  elif T is string:
-    let val: string = cast[string](value)
-    encode(buff, int16(val.len)).data.add(val.toByteArray())
-
-  return buff
-
 proc getNextByte(buff: LittleEndianByteBuffer): int32 =
   result = cast[int32](buff.data[buff.pos]) and 0xFF
   inc(buff.pos)
+
+proc encode1*(buff: LittleEndianByteBuffer, value: int): LittleEndianByteBuffer {.discardable.} =
+  buff.data.add(cast[int8](value))
+  return buff
+
+proc encode2*(buff: LittleEndianByteBuffer, value: int): LittleEndianByteBuffer {.discardable.} =
+  buff.data.add(cast[int16](value).toByteArray())
+  return buff
+
+proc encode4*(buff: LittleEndianByteBuffer, value: int): LittleEndianByteBuffer {.discardable.} =
+  buff.data.add(cast[int32](value).toByteArray())
+  return buff
+
+proc encodeStr*(buff: LittleEndianByteBuffer, value: string): LittleEndianByteBuffer {.discardable.} =
+  buff.encode2(value.len).data.add(value.toByteArray())
+  return buff
 
 proc decode1*(buff: LittleEndianByteBuffer): int8 {.discardable.} =
   result = cast[int8](buff.getNextByte())
