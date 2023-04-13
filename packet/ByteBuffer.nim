@@ -43,4 +43,4 @@ proc decodeStr*(buff: LittleEndianByteBuffer): string {.discardable.} =
   let len = decode2(buff)
   result = newString(len)
   copyMem(result[0].addr, buff.data[buff.pos].unsafeAddr, len)
-
+  buff.pos += len

@@ -6,7 +6,7 @@ type
   MapleAESOFB* = object
     cipher*: AES
 
-var sVersion, rVersion: int16
+var v, sVersion, rVersion: int16
 
 const SHUFFLE_BYTES = [
   0xEC, 0x3F, 0x77, 0xA4, 0x45, 0xD0, 0x71, 0xBF, 0xB7, 0x98, 0x20, 0xFC, 0x4B, 0xE9, 0xB3, 0xE1,
@@ -28,6 +28,7 @@ const SHUFFLE_BYTES = [
 ]
 
 proc initialize*(version: int16) =
+  v = version
   sVersion = cast[int16]((((0xFFFF - version) shr 8) and 0xFF) or (((0xFFFF - version) shl 8) and 0xFF00))
   rVersion = cast[int16](((version shr 8) and 0xFF) or ((version shl 8) and 0xFF00))
 
@@ -43,19 +44,15 @@ proc getHeader*(delta: int, gamma: openArray[int8]): seq[int8] =
   result[3] = cast[int8](c and 0xFF)
 
 proc getLength*(delta: int): int =
-  var a = ((delta shr 16) xor (delta and 0xFFFF))
-  return ((a shl 8) and 0xFF00) or ((a shr 8) and 0xFF)
+  let low = cast[int16](delta and 0xFFFF)
+  let high = cast[int16]((delta shr 16) and 0xFFFF)
+  result = low xor high
 
-proc checkPacket(delta, gamma: openArray[int8]): bool =
-  return ((((delta[0] xor gamma[2]) and 0xFF) == ((rVersion shr 8) and 0xFF)) and (((delta[1] xor gamma[3]) and 0xFF) == (rVersion and 0xFF)))
+proc checkPacket*(header: int, iv: openArray[int8]): bool =
+  let low = cast[int16](header and 0xFFFF)
+  result = cast[int16]((iv[2] and 0xFF) or ((iv[3] and 0xFF) shl 8)) == (low xor v)
 
-proc checkPacket*(delta: int, gamma: openArray[int8]): bool =
-  var a = newSeq[int8](2)
-  a[0] = cast[int8]((delta shr 24) and 0xFF)
-  a[1] = cast[int8]((delta shr 16) and 0xFF)
-  return checkPacket(a, gamma)
-
-proc getNewIv*(delta: var seq[int8]): seq[int8] =
+proc getNewIv*(delta: var array[4, int8]): array[4, int8] =
   var iv = [0xF2, 0x53, 0x50, 0xC6]
   for i in 0..<4:
     var
@@ -78,20 +75,20 @@ proc getNewIv*(delta: var seq[int8]): seq[int8] =
     delta[i] = cast[int8](iv[i])
   return delta
 
-proc crypt*(aesofb: var MapleAESOFB, delta: var seq[int8], gamma: openArray[int8]): seq[int8] =
+proc crypt*(aesofb: var MapleAESOFB, data: var seq[int8], iv: openArray[int8]): seq[int8] =
   var
-    a = delta.len
+    a = data.len
     b = 0x5B0
     c = 0
   while a > 0:
-    var d = multiplyBytes(gamma, 4, 4)
+    var d = multiplyBytes(iv, 4, 4)
     if a < b:
       b = a
     for e in c..<(c + b):
       if (e - c) mod d.len == 0:
         aesofb.cipher.encrypt(d)
-      delta[e] ^= d[(e - c) mod d.len]
+      data[e] ^= d[(e - c) mod d.len]
     c += b
     a -= b
     b = 0x5B4
-  return delta
+  return data
