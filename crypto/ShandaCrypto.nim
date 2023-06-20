@@ -10,7 +10,8 @@ proc encrypt*(data: var openArray[int8]) =
       for i in 0..<data.len:
         var cur = data[i]
         cur = rollLeft(cur, 3)
-        cur += dataLength
+        cur = cast[int8](cast[int](cur) + cast[int](dataLength)) # todo figure out why this crashes without the int casts
+        #cur += dataLength
         cur ^= remember
         remember = cur
         cur = rollRight(cur, dataLength and 0xFF)
